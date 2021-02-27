@@ -1,6 +1,5 @@
 use thiserror::Error;
 
-
 #[derive(Error, Debug)]
 pub enum FlvError {
     #[error("Unsupported sampling rate value {0}")]

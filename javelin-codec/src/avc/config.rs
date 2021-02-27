@@ -1,15 +1,8 @@
 use {
-    std::{
-        convert::TryFrom,
-        io::Cursor,
-    },
+    super::{nal, AvcError},
     bytes::Buf,
-    super::{
-        nal,
-        AvcError,
-    },
+    std::{convert::TryFrom, io::Cursor},
 };
-
 
 // Bits | Name
 // ---- | ----
@@ -45,7 +38,7 @@ impl TryFrom<&[u8]> for DecoderConfigurationRecord {
         let mut buf = Cursor::new(bytes);
 
         if buf.remaining() < 7 {
-            return Err(AvcError::NotEnoughData("AVC configuration record"))
+            return Err(AvcError::NotEnoughData("AVC configuration record"));
         }
 
         let version = buf.get_u8();

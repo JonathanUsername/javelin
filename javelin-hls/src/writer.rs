@@ -1,28 +1,22 @@
 use {
-    std::{
-        convert::TryFrom,
-        path::{Path, PathBuf},
-        fs,
-    },
+    crate::{config::Config, file_cleaner, m3u8::Playlist},
+    anyhow::{bail, Result},
     chrono::Utc,
-    anyhow::{Result, bail},
     javelin_codec::{
-        FormatReader,
-        FormatWriter,
-        avc::{self, AvcCoder},
         aac::{self, AacCoder},
+        avc::{self, AvcCoder},
         flv,
         mpegts::TransportStream,
+        FormatReader, FormatWriter,
     },
-    javelin_types::{Packet, PacketType},
     javelin_core::session,
-    crate::{
-        config::Config,
-        file_cleaner,
-        m3u8::Playlist,
+    javelin_types::{Packet, PacketType},
+    std::{
+        convert::TryFrom,
+        fs,
+        path::{Path, PathBuf},
     },
 };
-
 
 pub struct Writer {
     watcher: session::Watcher,
@@ -38,7 +32,12 @@ pub struct Writer {
 }
 
 impl Writer {
-    pub fn create(app_name: String, watcher: session::Watcher, fcleaner_sender: file_cleaner::Sender, config: &Config) -> Result<Self> {
+    pub fn create(
+        app_name: String,
+        watcher: session::Watcher,
+        fcleaner_sender: file_cleaner::Sender,
+        config: &Config,
+    ) -> Result<Self> {
         let write_interval = 2000; // milliseconds
         let next_write = write_interval; // milliseconds
 
@@ -73,7 +72,8 @@ impl Writer {
     }
 
     fn handle_video<T>(&mut self, timestamp: T, bytes: &[u8]) -> Result<()>
-        where T: Into<u64>
+    where
+        T: Into<u64>,
     {
         let timestamp: u64 = timestamp.into();
 
@@ -82,7 +82,7 @@ impl Writer {
 
         if flv_packet.is_sequence_header() {
             self.avc_coder.set_dcr(payload.as_ref())?;
-            return Ok(())
+            return Ok(());
         }
 
         let keyframe = flv_packet.is_keyframe();
@@ -95,7 +95,11 @@ impl Writer {
             }
 
             if timestamp >= self.next_write {
-                let filename = format!("{}-{}.mpegts", Utc::now().timestamp(), self.keyframe_counter);
+                let filename = format!(
+                    "{}-{}.mpegts",
+                    Utc::now().timestamp(),
+                    self.keyframe_counter
+                );
                 let path = self.stream_path.join(&filename);
                 self.buffer.write_to_file(&path)?;
                 self.playlist.add_media_segment(filename, keyframe_duration);
@@ -108,12 +112,15 @@ impl Writer {
 
         let video = match self.avc_coder.read_format(avc::Avcc, &payload)? {
             Some(avc) => self.avc_coder.write_format(avc::AnnexB, avc)?,
-            None => return Ok(())
+            None => return Ok(()),
         };
 
         let comp_time = flv_packet.composition_time as u64;
 
-        if let Err(why) = self.buffer.push_video(timestamp, comp_time, keyframe, video) {
+        if let Err(why) = self
+            .buffer
+            .push_video(timestamp, comp_time, keyframe, video)
+        {
             log::warn!("Failed to put data into buffer: {:?}", why);
         }
 
@@ -121,7 +128,8 @@ impl Writer {
     }
 
     fn handle_audio<T>(&mut self, timestamp: T, bytes: &[u8]) -> Result<()>
-        where T: Into<u64>
+    where
+        T: Into<u64>,
     {
         let timestamp: u64 = timestamp.into();
 
@@ -129,7 +137,7 @@ impl Writer {
 
         if flv.is_sequence_header() {
             self.aac_coder.set_asc(flv.body.as_ref())?;
-            return Ok(())
+            return Ok(());
         }
 
         if self.keyframe_counter == 0 {
@@ -137,8 +145,10 @@ impl Writer {
         }
 
         let audio = match self.aac_coder.read_format(aac::Raw, &flv.body)? {
-            Some(raw_aac) => self.aac_coder.write_format(aac::AudioDataTransportStream, raw_aac)?,
-            None => return Ok(())
+            Some(raw_aac) => self
+                .aac_coder
+                .write_format(aac::AudioDataTransportStream, raw_aac)?,
+            None => return Ok(()),
         };
 
         if let Err(why) = self.buffer.push_audio(timestamp, audio) {
@@ -150,13 +160,9 @@ impl Writer {
 
     fn handle_packet(&mut self, packet: Packet) -> Result<()> {
         match packet.kind {
-            PacketType::Video => {
-                self.handle_video(packet.timestamp.unwrap(), packet.as_ref())
-            }
-            PacketType::Audio => {
-                self.handle_audio(packet.timestamp.unwrap(), packet.as_ref())
-            }
-            _ => Ok(())
+            PacketType::Video => self.handle_video(packet.timestamp.unwrap(), packet.as_ref()),
+            PacketType::Audio => self.handle_audio(packet.timestamp.unwrap(), packet.as_ref()),
+            _ => Ok(()),
         }
     }
 }
@@ -167,12 +173,14 @@ impl Drop for Writer {
     }
 }
 
-
 fn prepare_stream_directory<P: AsRef<Path>>(path: P) -> Result<()> {
     let stream_path = path.as_ref();
 
     if stream_path.exists() && !stream_path.is_dir() {
-        bail!("Path '{}' exists, but is not a directory", stream_path.display());
+        bail!(
+            "Path '{}' exists, but is not a directory",
+            stream_path.display()
+        );
     }
 
     log::debug!("Creating HLS directory at '{}'", stream_path.display());

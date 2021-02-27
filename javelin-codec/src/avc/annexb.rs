@@ -1,8 +1,6 @@
-use {
-    crate::{
-        avc::{Avc, error::AvcError, nal, config::DecoderConfigurationRecord},
-        WriteFormat,
-    },
+use crate::{
+    avc::{config::DecoderConfigurationRecord, error::AvcError, nal, Avc},
+    WriteFormat,
 };
 
 pub struct AnnexB;
@@ -33,7 +31,7 @@ impl WriteFormat<Avc> for AnnexB {
                         out_buffer.extend(Self::ACCESS_UNIT_DELIMITER);
                         aud_appended = true;
                     }
-                },
+                }
                 IdrPicture => {
                     if !aud_appended {
                         out_buffer.extend(Self::ACCESS_UNIT_DELIMITER);
@@ -55,7 +53,7 @@ impl WriteFormat<Avc> for AnnexB {
 
                         sps_and_pps_appended = true;
                     }
-                },
+                }
                 t => log::debug!("Received unhandled NALU type {:?}", t),
             }
 

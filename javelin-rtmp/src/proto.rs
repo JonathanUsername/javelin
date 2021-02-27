@@ -1,19 +1,18 @@
 use {
+    crate::convert,
+    bytes::Bytes,
+    javelin_types::{Packet, PacketType},
+    rml_rtmp::{
+        handshake::{Handshake, HandshakeProcessResult, PeerType},
+        sessions::{ServerSession, ServerSessionConfig, ServerSessionEvent, ServerSessionResult},
+        time::RtmpTimestamp,
+    },
     std::{
         convert::{TryFrom, TryInto},
         rc::Rc,
     },
     thiserror::Error,
-    bytes::Bytes,
-    rml_rtmp::{
-        sessions::{ServerSession, ServerSessionConfig, ServerSessionResult, ServerSessionEvent},
-        handshake::{Handshake, PeerType, HandshakeProcessResult},
-        time::RtmpTimestamp,
-    },
-    javelin_types::{Packet, PacketType},
-    crate::convert,
 };
-
 
 #[derive(Error, Debug)]
 pub enum Error {
@@ -39,17 +38,23 @@ pub enum Error {
     EmptyAppName,
 }
 
-
 pub enum Event {
     ReturnData(Bytes),
     SendPacket(Packet),
-    AcquireSession { app_name: String, stream_key: String },
-    JoinSession { app_name: String, stream_key: String },
-    SendInitData { app_name: String },
+    AcquireSession {
+        app_name: String,
+        stream_key: String,
+    },
+    JoinSession {
+        app_name: String,
+        stream_key: String,
+    },
+    SendInitData {
+        app_name: String,
+    },
     ReleaseSession,
     LeaveSession,
 }
-
 
 enum State {
     HandshakePending,
@@ -58,7 +63,6 @@ enum State {
     Playing { stream_id: u32 },
     Finished,
 }
-
 
 pub struct Protocol {
     state: State,
@@ -76,17 +80,18 @@ impl Protocol {
         match &mut self.state {
             State::HandshakePending => {
                 self.perform_handshake(input)?;
-            },
+            }
             _ => {
                 self.handle_input(input)?;
-            },
+            }
         }
 
         Ok(self.return_queue.drain(..).collect())
     }
 
     fn handle_input(&mut self, input: &[u8]) -> Result<(), Error> {
-        let results = self.session()?
+        let results = self
+            .session()?
             .handle_input(input)
             .map_err(|_| Error::InvalidInput)?;
         self.handle_results(results)?;
@@ -94,15 +99,19 @@ impl Protocol {
     }
 
     fn perform_handshake(&mut self, input: &[u8]) -> Result<(), Error> {
-        let result = self.handshake
+        let result = self
+            .handshake
             .process_bytes(input)
             .map_err(|_| Error::HandshakeFailed)?;
 
         match result {
             HandshakeProcessResult::InProgress { response_bytes } => {
                 self.emit(Event::ReturnData(response_bytes.into()));
-            },
-            HandshakeProcessResult::Completed { response_bytes, remaining_bytes } => {
+            }
+            HandshakeProcessResult::Completed {
+                response_bytes,
+                remaining_bytes,
+            } => {
                 log::debug!("RTMP handshake successful");
                 if !response_bytes.is_empty() {
                     self.emit(Event::ReturnData(response_bytes.into()));
@@ -115,7 +124,7 @@ impl Protocol {
                 }
 
                 self.state = State::Ready;
-            },
+            }
         }
 
         Ok(())
@@ -123,8 +132,8 @@ impl Protocol {
 
     fn initialize_session(&mut self) -> Result<(), Error> {
         let config = ServerSessionConfig::new();
-        let (session, results) = ServerSession::new(config)
-            .map_err( |_| Error::SessionInitializationFailed)?;
+        let (session, results) =
+            ServerSession::new(config).map_err(|_| Error::SessionInitializationFailed)?;
         self.session = Some(session);
         self.handle_results(results)
     }
@@ -132,7 +141,8 @@ impl Protocol {
     fn accept_request(&mut self, id: u32) -> Result<(), Error> {
         let results = {
             let session = self.session()?;
-            session.accept_request(id)
+            session
+                .accept_request(id)
                 .map_err(|_| Error::RequestRejected)?
         };
         self.handle_results(results)
@@ -156,7 +166,7 @@ impl Protocol {
             .unwrap();
 
         self.session()?
-            .send_video_data(stream_id, data, timestamp,false)
+            .send_video_data(stream_id, data, timestamp, false)
             .map_err(|_| Error::InvalidInput)
             .map(|v| v.bytes)
     }
@@ -180,10 +190,10 @@ impl Protocol {
             match result {
                 ServerSessionResult::OutboundResponse(packet) => {
                     self.emit(Event::ReturnData(packet.bytes.into()));
-                },
+                }
                 ServerSessionResult::RaisedEvent(event) => {
                     self.handle_event(event)?;
-                },
+                }
                 ServerSessionResult::UnhandleableMessageReceived(_) => (),
             }
         }
@@ -195,47 +205,72 @@ impl Protocol {
         use ServerSessionEvent::*;
 
         match event {
-            ConnectionRequested { request_id, app_name, .. } => {
+            ConnectionRequested {
+                request_id,
+                app_name,
+                ..
+            } => {
                 if app_name.is_empty() {
-                    return Err(Error::EmptyAppName)
+                    return Err(Error::EmptyAppName);
                 }
 
                 self.accept_request(request_id)?;
-            },
-            PublishStreamRequested { request_id, app_name, stream_key, ..} => {
-                self.emit(Event::AcquireSession { app_name, stream_key });
+            }
+            PublishStreamRequested {
+                request_id,
+                app_name,
+                stream_key,
+                ..
+            } => {
+                self.emit(Event::AcquireSession {
+                    app_name,
+                    stream_key,
+                });
                 self.accept_request(request_id)?;
                 self.state = State::Publishing;
-            },
+            }
             PublishStreamFinished { .. } => {
                 self.emit(Event::ReleaseSession);
                 self.state = State::Finished;
-            },
-            PlayStreamRequested { request_id, app_name, stream_key, stream_id, .. } => {
-                self.emit(Event::JoinSession { app_name: app_name.clone(), stream_key });
+            }
+            PlayStreamRequested {
+                request_id,
+                app_name,
+                stream_key,
+                stream_id,
+                ..
+            } => {
+                self.emit(Event::JoinSession {
+                    app_name: app_name.clone(),
+                    stream_key,
+                });
                 self.accept_request(request_id)?;
                 self.emit(Event::SendInitData { app_name });
                 self.state = State::Playing { stream_id };
-            },
+            }
             PlayStreamFinished { .. } => {
                 self.emit(Event::LeaveSession);
                 self.state = State::Finished;
-            },
-            AudioDataReceived { data, timestamp, .. } => {
+            }
+            AudioDataReceived {
+                data, timestamp, ..
+            } => {
                 let packet = Packet::new_audio(timestamp.value, data);
                 self.emit(Event::SendPacket(packet));
-            },
-            VideoDataReceived { data, timestamp, .. } => {
+            }
+            VideoDataReceived {
+                data, timestamp, ..
+            } => {
                 let packet = Packet::new_video(timestamp.value, data);
                 self.emit(Event::SendPacket(packet));
-            },
+            }
             StreamMetadataChanged { metadata, .. } => {
                 let metadata = convert::from_metadata(metadata);
                 let payload = Bytes::try_from(metadata).unwrap();
                 let packet = Packet::new::<u32, Bytes>(PacketType::Meta, None, payload);
                 self.emit(Event::SendPacket(packet));
-            },
-            _ => ()
+            }
+            _ => (),
         }
 
         Ok(())
@@ -248,7 +283,7 @@ impl Protocol {
     fn stream_id(&self) -> Result<u32, Error> {
         match self.state {
             State::Playing { stream_id } => Ok(stream_id),
-            _ => Err(Error::NoStreamId)
+            _ => Err(Error::NoStreamId),
         }
     }
 

@@ -1,6 +1,5 @@
 use thiserror::Error;
 
-
 #[derive(Debug, Error)]
 pub enum AacError {
     #[error("AAC coder not initialized")]

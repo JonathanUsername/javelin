@@ -1,8 +1,4 @@
-use {
-    thiserror::Error,
-    crate::async_trait,
-};
-
+use {crate::async_trait, thiserror::Error};
 
 #[derive(Debug, Error)]
 pub enum Error {
@@ -12,7 +8,6 @@ pub enum Error {
     #[error("Database update failed")]
     UpdateFailed,
 }
-
 
 pub struct User {
     pub name: String,
@@ -27,7 +22,7 @@ pub trait UserRepository {
 
     async fn user_has_key(&self, name: &str, key: &str) -> Result<bool, Error> {
         if let Some(user) = self.user_by_name(name).await? {
-            return Ok(&user.key == key)
+            return Ok(&user.key == key);
         }
 
         Ok(false)

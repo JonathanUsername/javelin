@@ -1,18 +1,13 @@
-use {
-    std::{
-        convert::TryFrom,
-        collections::HashMap,
-    },
-    bytes::Bytes,
-    serde::{Serialize, Deserialize},
-    crate::{Error, Packet, PacketType},
-};
 use std::str::FromStr;
-
+use {
+    crate::{Error, Packet, PacketType},
+    bytes::Bytes,
+    serde::{Deserialize, Serialize},
+    std::{collections::HashMap, convert::TryFrom},
+};
 
 type StringMap = HashMap<String, String>;
 type StrMap<'a> = HashMap<&'a str, String>;
-
 
 #[derive(Clone, Copy, Serialize, Deserialize)]
 pub struct Timestamp {
@@ -43,19 +38,16 @@ impl From<Timestamp> for u64 {
     }
 }
 
-
 #[derive(Clone, Serialize, Deserialize)]
 pub struct Metadata(StringMap);
 
 impl Metadata {
     pub fn get<V, K>(&self, key: K) -> Option<V>
-        where K: AsRef<str>,
-              V: FromStr
+    where
+        K: AsRef<str>,
+        V: FromStr,
     {
-        self.0
-            .get(key.as_ref())
-            .map(|v| v.parse().ok())
-            .flatten()
+        self.0.get(key.as_ref()).map(|v| v.parse().ok()).flatten()
     }
 }
 

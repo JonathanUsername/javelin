@@ -1,23 +1,18 @@
-mod error;
-pub mod nal;
-pub mod config;
 pub mod annexb;
 pub mod avcc;
+pub mod config;
+mod error;
+pub mod nal;
 
+pub use self::{annexb::AnnexB, avcc::Avcc, error::AvcError};
 use {
+    self::config::DecoderConfigurationRecord,
+    crate::{FormatReader, FormatWriter, ReadFormat, WriteFormat},
     std::{
         convert::TryInto,
         fmt::{self, Debug},
     },
-    self::config::DecoderConfigurationRecord,
-    crate::{ReadFormat, WriteFormat, FormatReader, FormatWriter},
 };
-pub use self::{
-    error::AvcError,
-    annexb::AnnexB,
-    avcc::Avcc,
-};
-
 
 pub struct Avc(Vec<nal::Unit>);
 
@@ -33,7 +28,6 @@ impl From<Avc> for Vec<nal::Unit> {
     }
 }
 
-
 #[derive(Debug, PartialEq, Eq)]
 enum State {
     Initializing,
@@ -45,7 +39,6 @@ impl Default for State {
         Self::Initializing
     }
 }
-
 
 #[derive(Default)]
 pub struct AvcCoder {
@@ -59,7 +52,8 @@ impl AvcCoder {
     }
 
     pub fn set_dcr<D>(&mut self, dcr: D) -> Result<(), AvcError>
-        where D: TryInto<DecoderConfigurationRecord, Error=AvcError>
+    where
+        D: TryInto<DecoderConfigurationRecord, Error = AvcError>,
     {
         let dcr = dcr.try_into()?;
         self.dcr = Some(dcr);
@@ -80,13 +74,17 @@ impl FormatReader<Avcc> for AvcCoder {
     type Output = Avc;
     type Error = AvcError;
 
-    fn read_format(&mut self, format: Avcc, input: &[u8]) -> Result<Option<Self::Output>, Self::Error> {
+    fn read_format(
+        &mut self,
+        format: Avcc,
+        input: &[u8],
+    ) -> Result<Option<Self::Output>, Self::Error> {
         Ok(match &self.state {
             State::Initializing => {
                 self.set_dcr(input)
                     .map_err(|_| AvcError::DecoderInitializationFailed)?;
                 None
-            },
+            }
             State::Ready => {
                 let dcr = self.dcr.as_ref().unwrap();
                 Some(format.read_format(input, dcr)?)
@@ -101,9 +99,7 @@ impl FormatWriter<AnnexB> for AvcCoder {
 
     fn write_format(&mut self, format: AnnexB, input: Self::Input) -> Result<Vec<u8>, Self::Error> {
         match &self.state {
-            State::Initializing => {
-                Err(AvcError::NotInitialized)
-            },
+            State::Initializing => Err(AvcError::NotInitialized),
             State::Ready => {
                 let dcr = self.dcr.as_ref().unwrap();
                 Ok(format.write_format(input, dcr)?)

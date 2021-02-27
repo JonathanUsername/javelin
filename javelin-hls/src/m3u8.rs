@@ -1,14 +1,13 @@
 use {
-    std::{fs, path::PathBuf, time::Duration},
-    m3u8_rs::playlist::{MediaPlaylist, MediaSegment},
-    tempfile::NamedTempFile,
-    anyhow::Result,
     crate::file_cleaner,
+    anyhow::Result,
+    m3u8_rs::playlist::{MediaPlaylist, MediaSegment},
+    std::{fs, path::PathBuf, time::Duration},
+    tempfile::NamedTempFile,
 };
 
 #[cfg(unix)]
 use std::os::unix::fs::PermissionsExt;
-
 
 pub struct Playlist {
     file_path: PathBuf,
@@ -23,7 +22,8 @@ impl Playlist {
     const PLAYLIST_CACHE_DURATION: u64 = 30000; // milliseconds
 
     pub fn new<P>(path: P, file_cleaner: file_cleaner::Sender) -> Self
-        where P: Into<PathBuf>
+    where
+        P: Into<PathBuf>,
     {
         let mut playlist = MediaPlaylist::default();
         playlist.version = 3;
@@ -45,7 +45,8 @@ impl Playlist {
 
     fn schedule_for_deletion(&mut self, amount: usize, delete_after: u64) {
         let segments_to_delete: Vec<_> = self.playlist.segments.drain(..amount).collect();
-        let paths: Vec<_> = segments_to_delete.iter()
+        let paths: Vec<_> = segments_to_delete
+            .iter()
             .map(|seg| {
                 self.current_duration -= (seg.duration * 1000.0) as u64;
                 self.file_path.parent().unwrap().join(&seg.uri)
@@ -53,17 +54,19 @@ impl Playlist {
             .collect();
 
         self.playlist.media_sequence += paths.len() as i32;
-        self.file_cleaner.send((Duration::from_millis(delete_after), paths)).unwrap();
+        self.file_cleaner
+            .send((Duration::from_millis(delete_after), paths))
+            .unwrap();
     }
 
     pub fn add_media_segment<S>(&mut self, uri: S, duration: u64)
-        where S: Into<String>
+    where
+        S: Into<String>,
     {
         let mut segment = MediaSegment::empty();
         segment.duration = (duration as f64 / 1000.0) as f32;
         segment.title = Some("".into()); // adding empty title here, because implementation is broken
         segment.uri = uri.into();
-
 
         if self.cleanup_started {
             self.schedule_for_deletion(1, Self::PLAYLIST_CACHE_DURATION);
@@ -92,7 +95,10 @@ impl Playlist {
     }
 
     fn hls_root(&self) -> PathBuf {
-        self.file_path.parent().expect("No parent directory for playlist").into()
+        self.file_path
+            .parent()
+            .expect("No parent directory for playlist")
+            .into()
     }
 
     fn write_temporary_file(&mut self, tmp_file: &mut NamedTempFile) -> Result<()> {

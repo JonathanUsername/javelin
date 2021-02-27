@@ -1,7 +1,4 @@
-use {
-    std::io,
-    thiserror::Error,
-};
+use {std::io, thiserror::Error};
 
 #[derive(Error, Debug)]
 pub enum TsError {

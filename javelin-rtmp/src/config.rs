@@ -1,13 +1,7 @@
 use {
-    std::{
-        collections::HashMap,
-        net::SocketAddr,
-        time::Duration,
-    },
     serde::Deserialize,
+    std::{collections::HashMap, net::SocketAddr, time::Duration},
 };
-
-
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct Config {
@@ -45,18 +39,12 @@ fn default_conn_timeout() -> Duration {
     Duration::from_secs(5)
 }
 
-
 #[cfg(feature = "rtmps")]
 mod tls {
     use {
-        std::{
-            fs::File,
-            path::PathBuf,
-            io::Read,
-            net::SocketAddr,
-        },
+        anyhow::{Context, Result},
         serde::Deserialize,
-        anyhow::{Result, Context},
+        std::{fs::File, io::Read, net::SocketAddr, path::PathBuf},
     };
 
     #[derive(Debug, Clone, Deserialize)]

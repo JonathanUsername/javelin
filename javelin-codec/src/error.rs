@@ -1,14 +1,9 @@
-use {
-    thiserror::Error,
-    crate::{
-        avc::AvcError,
-        aac::AacError,
-        flv::FlvError,
-    }
-};
 #[cfg(feature = "mpegts")]
 use crate::mpegts::TsError;
-
+use {
+    crate::{aac::AacError, avc::AvcError, flv::FlvError},
+    thiserror::Error,
+};
 
 #[derive(Error, Debug)]
 pub enum CodecError {

@@ -1,6 +1,5 @@
 use thiserror::Error;
 
-
 #[derive(Debug, Error)]
 pub enum AvcError {
     #[error("Failed to initialize the AVC decoder")]

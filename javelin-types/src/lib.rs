@@ -1,13 +1,11 @@
 pub mod data;
-pub mod transport;
 pub mod models;
-
+pub mod transport;
 
 pub type Error = Box<dyn std::error::Error>;
 
-
 pub use self::{
-    data::{Timestamp, Metadata},
+    data::{Metadata, Timestamp},
     transport::{Packet, PacketType},
 };
 

@@ -1,12 +1,9 @@
-use {
-    std::path::Path,
-    anyhow::Result,
-};
 pub use config::Config;
-
+use {anyhow::Result, std::path::Path};
 
 pub fn from_path<P>(config_dir: P) -> Result<Config>
-    where P: AsRef<Path>
+where
+    P: AsRef<Path>,
 {
     let mut config = Config::new();
     let path = config_dir.as_ref().join("config.yml");

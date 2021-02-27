@@ -1,7 +1,4 @@
-use {
-    std::convert::TryFrom,
-    super::AacError,
-};
+use {super::AacError, std::convert::TryFrom};
 
 #[derive(Debug, Clone, Copy)]
 pub struct SamplingFrequencyIndex(u8);
@@ -23,7 +20,6 @@ impl TryFrom<u8> for SamplingFrequencyIndex {
     }
 }
 
-
 #[derive(Debug, Clone, Copy)]
 pub struct ChannelConfiguration(u8);
 
@@ -44,7 +40,6 @@ impl TryFrom<u8> for ChannelConfiguration {
     }
 }
 
-
 // See [MPEG-4 Audio Object Types][audio_object_types]
 //
 // [audio_object_types]: https://en.wikipedia.org/wiki/MPEG-4_Part_3#MPEG-4_Audio_Object_Types
@@ -61,13 +56,12 @@ impl TryFrom<u8> for AudioObjectType {
     type Error = AacError;
 
     fn try_from(value: u8) -> Result<Self, AacError> {
-        Ok(match  value {
+        Ok(match value {
             1 => Self::AacMain,
             2 => Self::AacLowComplexity,
             3 => Self::AacScalableSampleRate,
             4 => Self::AacLongTermPrediction,
-            _ => return Err(AacError::UnsupportedAudioFormat)
+            _ => return Err(AacError::UnsupportedAudioFormat),
         })
     }
 }
-

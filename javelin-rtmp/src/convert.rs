@@ -1,8 +1,4 @@
-use {
-    std::collections::HashMap,
-    javelin_types::Metadata,
-    rml_rtmp::sessions::StreamMetadata,
-};
+use {javelin_types::Metadata, rml_rtmp::sessions::StreamMetadata, std::collections::HashMap};
 
 // Temporary conversion functions
 
@@ -68,6 +64,6 @@ pub(crate) fn into_metadata(val: Metadata) -> StreamMetadata {
         audio_sample_rate: val.get("audio.sampling_rate"),
         audio_channels: val.get("audio.channels"),
         audio_is_stereo: val.get("audio.stereo"),
-        encoder: val.get("encoder") ,
+        encoder: val.get("encoder"),
     }
 }

@@ -1,15 +1,14 @@
 #![deny(unused_must_use)]
 #![warn(rust_2018_idioms)]
 
+pub mod aac;
+pub mod avc;
 pub mod error;
 pub mod flv;
-pub mod avc;
-pub mod aac;
 #[cfg(feature = "mpegts")]
 pub mod mpegts;
 
 pub use self::error::CodecError;
-
 
 /// Decode bytes into a specific format.
 pub trait ReadFormat<O> {
@@ -28,16 +27,19 @@ pub trait WriteFormat<I> {
 }
 
 pub trait FormatReader<F>
-    where F: ReadFormat<Self::Output, Error=Self::Error>
+where
+    F: ReadFormat<Self::Output, Error = Self::Error>,
 {
     type Output;
     type Error;
 
-    fn read_format(&mut self, format: F, input: &[u8]) -> Result<Option<Self::Output>, Self::Error>;
+    fn read_format(&mut self, format: F, input: &[u8])
+        -> Result<Option<Self::Output>, Self::Error>;
 }
 
 pub trait FormatWriter<F>
-    where F: WriteFormat<Self::Input, Error=Self::Error>
+where
+    F: WriteFormat<Self::Input, Error = Self::Error>,
 {
     type Input;
     type Error;

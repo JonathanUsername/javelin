@@ -1,11 +1,7 @@
 use {
-    std::{
-        path::PathBuf,
-        net::SocketAddr,
-    },
     serde::Deserialize,
+    std::{net::SocketAddr, path::PathBuf},
 };
-
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct Config {
@@ -29,7 +25,6 @@ impl Default for Config {
     }
 }
 
-
 #[derive(Debug, Clone, Deserialize)]
 pub struct WebConfig {
     #[serde(default = "default_web_addr")]
@@ -47,7 +42,6 @@ impl Default for WebConfig {
         }
     }
 }
-
 
 fn default_root_dir() -> PathBuf {
     PathBuf::from("./tmp/stream")

@@ -1,10 +1,4 @@
-use {
-    std::io,
-    thiserror::Error,
-    tokio::time,
-    crate::proto::Error as ProtocolError,
-};
-
+use {crate::proto::Error as ProtocolError, std::io, thiserror::Error, tokio::time};
 
 #[derive(Error, Debug)]
 pub enum Error {
@@ -33,5 +27,5 @@ pub enum Error {
     ProtocolError(#[from] ProtocolError),
 
     #[error("Connection timeout")]
-    ConnectionTimeout(#[from] time::Elapsed)
+    ConnectionTimeout(#[from] time::Elapsed),
 }

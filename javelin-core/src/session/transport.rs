@@ -1,9 +1,8 @@
 use {
-    tokio::sync::{mpsc, oneshot, broadcast},
+    super::{AppName, Event, StreamKey},
     javelin_types::Packet,
-    super::{AppName, StreamKey, Event},
+    tokio::sync::{broadcast, mpsc, oneshot},
 };
-
 
 pub type Responder<P> = oneshot::Sender<P>;
 
@@ -18,14 +17,12 @@ pub enum ManagerMessage {
 pub type ManagerHandle = mpsc::UnboundedSender<ManagerMessage>;
 pub(super) type ManagerReceiver = mpsc::UnboundedReceiver<ManagerMessage>;
 
-
 pub type Trigger = mpsc::UnboundedSender<(String, Watcher)>;
 pub(super) type TriggerHandle = mpsc::UnboundedReceiver<(String, Watcher)>;
 
 pub fn trigger_channel() -> (Trigger, TriggerHandle) {
     mpsc::unbounded_channel()
 }
-
 
 // session instance
 pub enum Message {

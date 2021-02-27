@@ -1,7 +1,6 @@
-pub mod manager;
 mod instance;
+pub mod manager;
 mod transport;
-
 
 type Event = &'static str;
 type AppName = String;
@@ -9,9 +8,5 @@ type StreamKey = String;
 
 pub use self::{
     manager::Manager,
-    transport::{
-        ManagerMessage, ManagerHandle,
-        Message, Watcher, Handle,
-        trigger_channel,
-    },
+    transport::{trigger_channel, Handle, ManagerHandle, ManagerMessage, Message, Watcher},
 };

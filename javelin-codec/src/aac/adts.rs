@@ -1,12 +1,11 @@
 use {
-    bytes::BufMut,
     super::config::AudioSpecificConfiguration,
     crate::{
+        aac::{error::AacError, Aac},
         WriteFormat,
-        aac::{Aac, error::AacError},
     },
+    bytes::BufMut,
 };
-
 
 // Bits | Description
 // ---- | -----------
@@ -55,7 +54,9 @@ impl WriteFormat<Aac> for AudioDataTransportStream {
 
         let sampling_frequency_index = u8::from(ctx.sampling_frequency_index) << 2;
         if sampling_frequency_index == 0x0F {
-            return Err(AacError::ForbiddenSamplingFrequencyIndex(sampling_frequency_index));
+            return Err(AacError::ForbiddenSamplingFrequencyIndex(
+                sampling_frequency_index,
+            ));
         }
 
         let channel_configuration: u8 = ctx.channel_configuration.into();

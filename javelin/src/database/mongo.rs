@@ -1,18 +1,14 @@
 use {
-    std::{
-        collections::HashSet,
-        net::SocketAddr,
-    },
     anyhow::Result,
+    javelin_core::Config,
     javelin_types::{
         async_trait,
-        models::{UserRepository, User, Error},
+        models::{Error, User, UserRepository},
     },
+    mongodb::{bson::doc, Client},
     serde::Deserialize,
-    javelin_core::Config,
-    mongodb::{Client, bson::doc},
+    std::{collections::HashSet, net::SocketAddr},
 };
-
 
 #[derive(Clone, Deserialize)]
 struct DatabaseConfig {
@@ -63,11 +59,7 @@ fn default_db_name() -> String {
     "javelin".to_string()
 }
 
-
-const COLLECTION_NAMES: &'static [&'static str] = &[
-    "users",
-];
-
+const COLLECTION_NAMES: &'static [&'static str] = &["users"];
 
 #[derive(Clone)]
 pub struct Database {
@@ -77,16 +69,16 @@ pub struct Database {
 
 impl Database {
     pub async fn new(config: &Config) -> Self {
-        let config: DatabaseConfig = config
-            .get("database.mongo")
-            .unwrap_or_default();
+        let config: DatabaseConfig = config.get("database.mongo").unwrap_or_default();
 
-        let client = Client::with_uri_str(&config.uri()).await
+        let client = Client::with_uri_str(&config.uri())
+            .await
             .expect("Failed to connect to MongoDB");
 
         log::info!("Connected to mongodb at {}", config.addr);
 
-        initialize_collections(&client, &config.dbname).await
+        initialize_collections(&client, &config.dbname)
+            .await
             .expect("Failed to initialize database");
 
         Self { config, client }
@@ -101,7 +93,8 @@ async fn initialize_collections(client: &Client, dbname: &str) -> Result<()> {
         .collect::<HashSet<_>>();
 
     let available_collections = db
-        .list_collection_names(None).await?
+        .list_collection_names(None)
+        .await?
         .into_iter()
         .collect::<HashSet<_>>();
 
@@ -119,12 +112,16 @@ impl UserRepository for Database {
         let db = self.client.database(&self.config.dbname);
         let res = db
             .collection("users")
-            .find_one(doc!{ "name": name }, None).await
+            .find_one(doc! { "name": name }, None)
+            .await
             .map_err(|_| Error::LookupFailed)?;
 
         if let Some(doc) = res {
             let key = doc.get_str("key").map_err(|_| Error::LookupFailed)?;
-            return Ok(Some(User { name: name.to_string(), key: key.to_string() }));
+            return Ok(Some(User {
+                name: name.to_string(),
+                key: key.to_string(),
+            }));
         }
 
         Ok(None)
@@ -134,7 +131,8 @@ impl UserRepository for Database {
         let db = self.client.database(&self.config.dbname);
 
         db.collection("users")
-            .insert_one(doc! { "name": name, "key": key }, None).await
+            .insert_one(doc! { "name": name, "key": key }, None)
+            .await
             .map_err(|_| Error::UpdateFailed)?;
 
         Ok(())

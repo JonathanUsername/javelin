@@ -1,18 +1,16 @@
 use {
-    std::{path::PathBuf, fs},
+    std::{fs, path::PathBuf},
     tokio::{
         stream::StreamExt,
         sync::mpsc,
-        time::{DelayQueue, Instant, Duration},
+        time::{DelayQueue, Duration, Instant},
     },
 };
-
 
 type Batch = Vec<PathBuf>;
 type Message = (Duration, Batch);
 pub type Sender = mpsc::UnboundedSender<Message>;
 type Receiver = mpsc::UnboundedReceiver<Message>;
-
 
 pub struct FileCleaner {
     items: DelayQueue<Batch>,
@@ -35,13 +33,17 @@ impl FileCleaner {
     pub async fn run(mut self) {
         while let Some((duration, files)) = self.receiver.recv().await {
             let timestamp = Instant::now() + ((duration / 100) * 150);
-            log::debug!("{} files queued for cleanup at {:?}", files.len(), timestamp);
+            log::debug!(
+                "{} files queued for cleanup at {:?}",
+                files.len(),
+                timestamp
+            );
             self.items.insert_at(files, timestamp);
 
             match self.items.next().await {
                 Some(Ok(expired)) => remove_files(expired.get_ref()),
                 Some(Err(why)) => log::error!("{}", why),
-                None => ()
+                None => (),
             }
         }
     }
@@ -50,7 +52,6 @@ impl FileCleaner {
         self.sender.clone()
     }
 }
-
 
 fn remove_files(paths: &[PathBuf]) {
     log::debug!("Cleaning up {} files", paths.len());

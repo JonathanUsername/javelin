@@ -1,10 +1,10 @@
 use {
-    std::{convert::TryFrom, io::Cursor},
-    bytes::Buf,
     crate::{
-        avc::{Avc, nal, config::DecoderConfigurationRecord, error::AvcError},
+        avc::{config::DecoderConfigurationRecord, error::AvcError, nal, Avc},
         ReadFormat,
     },
+    bytes::Buf,
+    std::{convert::TryFrom, io::Cursor},
 };
 
 pub struct Avcc;
@@ -25,7 +25,8 @@ impl ReadFormat<Avc> for Avcc {
             }
             let nalu_length = buf.get_uint(unit_size) as usize;
 
-            let nalu_data = buf.bytes()
+            let nalu_data = buf
+                .bytes()
                 .get(..nalu_length)
                 .ok_or_else(|| AvcError::NotEnoughData("NALU data"))?
                 .to_owned();
@@ -34,7 +35,7 @@ impl ReadFormat<Avc> for Avcc {
 
             let nal_unit = nal::Unit::try_from(&*nalu_data)?;
             nal_units.push(nal_unit);
-        };
+        }
 
         Ok(nal_units.into())
     }

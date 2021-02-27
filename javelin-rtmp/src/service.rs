@@ -1,30 +1,22 @@
 use {
+    crate::{config::Config as RtmpConfig, peer::Peer, Error},
+    anyhow::Result,
+    javelin_core::{session, Config},
     std::{
+        fmt::{self, Display},
         io::ErrorKind as IoErrorKind,
         sync::atomic::{AtomicUsize, Ordering},
         time::Duration,
-        fmt::{self, Display},
     },
-    anyhow::Result,
-    tokio::{
-        prelude::*,
-        net::TcpListener,
-    },
-    javelin_core::{session, Config},
-    crate::{
-        config::Config as RtmpConfig,
-        peer::Peer,
-        Error,
-    },
+    tokio::{net::TcpListener, prelude::*},
 };
 
 #[cfg(feature = "rtmps")]
 use {native_tls, tokio_native_tls::TlsAcceptor};
 
-
 #[derive(Debug, Default)]
 pub(crate) struct ClientId {
-    value: AtomicUsize
+    value: AtomicUsize,
 }
 
 impl ClientId {
@@ -45,7 +37,6 @@ impl From<&ClientId> for u64 {
     }
 }
 
-
 pub struct Service {
     config: RtmpConfig,
     session_manager: session::ManagerHandle,
@@ -57,7 +48,7 @@ impl Service {
         Self {
             session_manager,
             config: config.get("rtmp").unwrap_or_default(),
-            client_id: ClientId::default()
+            client_id: ClientId::default(),
         }
     }
 
@@ -65,10 +56,7 @@ impl Service {
         #[cfg(not(feature = "rtmps"))]
         let res = self.handle_rtmp().await;
         #[cfg(feature = "rtmps")]
-        let res = tokio::try_join!(
-            self.handle_rtmp(),
-            self.handle_rtmps()
-        );
+        let res = tokio::try_join!(self.handle_rtmp(), self.handle_rtmps());
 
         if let Err(err) = res {
             log::error!("{}", err);
@@ -91,7 +79,7 @@ impl Service {
     #[cfg(feature = "rtmps")]
     async fn handle_rtmps(&self) -> Result<()> {
         if !self.config.tls.enabled {
-            return Ok(())
+            return Ok(());
         }
 
         let addr = &self.config.tls.addr;
@@ -114,17 +102,23 @@ impl Service {
     }
 
     fn process<S>(&self, stream: S)
-        where S: AsyncRead + AsyncWrite + Unpin + Send + Sync + 'static
+    where
+        S: AsyncRead + AsyncWrite + Unpin + Send + Sync + 'static,
     {
         log::info!("New client connection: {}", &self.client_id);
         let id = (&self.client_id).into();
-        let peer = Peer::new(id, stream, self.session_manager.clone(), self.config.clone());
+        let peer = Peer::new(
+            id,
+            stream,
+            self.session_manager.clone(),
+            self.config.clone(),
+        );
 
         tokio::spawn(async move {
             if let Err(err) = peer.run().await {
                 match err {
                     Error::Disconnected(e) if e.kind() == IoErrorKind::ConnectionReset => (),
-                    e => log::error!("{}", e)
+                    e => log::error!("{}", e),
                 }
             }
         });

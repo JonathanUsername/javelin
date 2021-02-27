@@ -6,16 +6,14 @@ mod args;
 mod database;
 mod management;
 
-
 use {
     anyhow::Result,
-    javelin_core::{
-        session,
-        config::{self, Config},
-    },
     database::Database,
+    javelin_core::{
+        config::{self, Config},
+        session,
+    },
 };
-
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -30,11 +28,11 @@ async fn main() -> Result<()> {
     match args.subcommand() {
         ("permit-stream", Some(args)) => {
             management::permit_stream(args, &config).await?;
-        },
+        }
         ("run", _) | ("", _) => {
             run_app(&config).await?;
-        },
-        _ => ()
+        }
+        _ => (),
     }
 
     Ok(())
@@ -47,9 +45,7 @@ async fn run_app(config: &Config) -> Result<()> {
 
     let session = session::Manager::new(database_handle.clone());
     let session_handle = session.handle();
-    handles.push(tokio::spawn({
-        session.run()
-    }));
+    handles.push(tokio::spawn({ session.run() }));
 
     #[cfg(feature = "hls")]
     handles.push(tokio::spawn({
@@ -71,9 +67,9 @@ async fn run_app(config: &Config) -> Result<()> {
 
 fn init_logger() -> Result<()> {
     use {
-        fern::{Dispatch, colors::ColoredLevelConfig, log_file},
+        chrono::{Local as LocalTime, Utc},
+        fern::{colors::ColoredLevelConfig, log_file, Dispatch},
         log::LevelFilter,
-        chrono::{Utc, Local as LocalTime},
     };
 
     let colors = ColoredLevelConfig::default();
@@ -85,30 +81,32 @@ fn init_logger() -> Result<()> {
         .level_for("javelin_types", LevelFilter::Debug)
         .level_for("javelin_core", LevelFilter::Debug)
         .level_for("javelin_codec", LevelFilter::Warn)
-        .chain(Dispatch::new()
-            .format(|out, msg, record| {
-                out.finish(format_args!(
-                    "level={:5} timestamp={} target={}  {}",
-                    record.level(),
-                    Utc::now().format("%Y-%m-%dT%H:%M:%S"),
-                    record.target(),
-                    msg
-                ))
-            })
-            // TODO: implement auto rotating file logger
-            .chain(log_file("javelin.log")?)
+        .chain(
+            Dispatch::new()
+                .format(|out, msg, record| {
+                    out.finish(format_args!(
+                        "level={:5} timestamp={} target={}  {}",
+                        record.level(),
+                        Utc::now().format("%Y-%m-%dT%H:%M:%S"),
+                        record.target(),
+                        msg
+                    ))
+                })
+                // TODO: implement auto rotating file logger
+                .chain(log_file("javelin.log")?),
         )
-        .chain(Dispatch::new()
-            .format(move |out, msg, record| {
-                out.finish(format_args!(
-                    "[{:5}] {} ({}) {}",
-                    colors.color(record.level()),
-                    LocalTime::now().format("%Y-%m-%d %H:%M:%S"),
-                    record.target(),
-                    msg
-                ))
-            })
-            .chain(std::io::stdout())
+        .chain(
+            Dispatch::new()
+                .format(move |out, msg, record| {
+                    out.finish(format_args!(
+                        "[{:5}] {} ({}) {}",
+                        colors.color(record.level()),
+                        LocalTime::now().format("%Y-%m-%d %H:%M:%S"),
+                        record.target(),
+                        msg
+                    ))
+                })
+                .chain(std::io::stdout()),
         )
         .apply()?;
 
