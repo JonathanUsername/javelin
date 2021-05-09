@@ -30,6 +30,6 @@ javelin-types = { version = "^0.4.0-dev.1", path = "../javelin-types" }
 javelin-core = { version = "^0.4.0-dev.1", path = "../javelin-core" }
 
 [dependencies.tokio]
-version = "0.2.21"
+version = "1"
 default-features = false
 features = ["rt-core", "stream", "sync", "time", "tcp"]

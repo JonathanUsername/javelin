@@ -20,7 +20,7 @@ default-features = false
 features = ["yaml"]
 
 [dependencies.tokio]
-version = "0.2.21"
+version = "1"
 default-features = false
 features = ["rt-core", "sync"]
 
