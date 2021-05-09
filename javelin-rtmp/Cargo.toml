@@ -16,7 +16,7 @@ rtmps = ["native-tls", "tokio-native-tls"]
 
 
 [dependencies]
-bytes = "^0.5"
+bytes = "1"
 rml_rtmp = "^0.3"
 thiserror = "^1.0"
 anyhow = "^1.0"
