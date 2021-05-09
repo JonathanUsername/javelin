@@ -1,6 +1,6 @@
 [package]
 name = "javelin-core"
-version = "0.4.0-dev.1"
+version = "0.4.0-dev.2"
 authors = ["Patrick Auernig <dev.patrick.auernig@gmail.com>"]
 description = "Simple streaming server (shared core components)"
 license = "GPL-3.0"
